@@ -1,0 +1,189 @@
+Get started with GitHub Actions
+Build, test, and deploy your code. Make code reviews, branch management, and issue triaging work the way you want. Select a workflow to get started.
+
+Skip this and set up a workflow yourself 
+
+Search workflows
+Suggested for this repository
+Simple workflow
+By GitHub
+
+Simple workflow logo
+Start with a file with the minimum necessary structure.
+
+Deployment
+View alldeployment workflows
+Deploy Node.js to Azure Web App
+By Microsoft Azure
+
+Deploy Node.js to Azure Web App logo
+Build a Node.js project and deploy it to an Azure Web App.
+
+Deployment
+Deploy to Amazon ECS
+By Amazon Web Services
+
+Deploy to Amazon ECS logo
+Deploy a container to an Amazon ECS service powered by AWS Fargate or Amazon EC2.
+
+Deployment
+Build and Deploy to GKE
+By Google Cloud
+
+Build and Deploy to GKE logo
+Build a docker container, publish it to Google Container Registry, and deploy to GKE.
+
+Deployment
+Terraform
+By HashiCorp
+
+Terraform logo
+Set up Terraform CLI in your GitHub Actions workflow.
+
+Deployment
+Deploy to Alibaba Cloud ACK
+By Alibaba Cloud
+
+Deploy to Alibaba Cloud ACK logo
+Deploy a container to Alibaba Cloud Container Service for Kubernetes (ACK).
+
+Deployment
+Deploy to IBM Cloud Kubernetes Service
+By IBM
+
+Deploy to IBM Cloud Kubernetes Service logo
+Build a docker container, publish it to IBM Cloud Container Registry, and deploy to IBM Cloud Kubernetes Service.
+
+Deployment
+Tencent Kubernetes Engine
+By Tencent Cloud
+
+Tencent Kubernetes Engine logo
+This workflow will build a docker container, publish and deploy it to Tencent Kubernetes Engine (TKE).
+
+Deployment
+OpenShift
+By Red Hat
+
+OpenShift logo
+Build a Docker-based project and deploy it to OpenShift.
+
+Deployment
+Security
+View allsecurity workflows
+CodeQL Analysis
+By GitHub
+
+Security analysis from GitHub for C, C++, C#, Go, Java, JavaScript, TypeScript, Python, Ruby, Kotlin and Swift developers.
+
+Code scanning
+APIsec Scan
+By APIsec
+
+APIsec Scan logo
+APIsec provides the industry’s only automated and continuous API testing platform that uncovers security vulnerabilities and logic flaws in APIs.
+
+Code scanning
+Appknox
+By Appknox
+
+Appknox logo
+Use Appknox action for faster and precise security assessments of your iOS and Android apps developed using any programming language
+
+Code scanning
+Black Duck Security Scan Workflow
+By Black Duck Software, Inc.
+
+Black Duck Security Scan Workflow logo
+The Black Duck Security Scan GitHub Action allows you to configure your pipeline to run Black Duck Security Scan and take action on the security results
+
+Code scanning
+Continuous integration
+View allcontinuous integration workflows
+Ada
+By GitHub Actions
+
+Ada logo
+Build Ada project with GPRbuild.
+
+Ada
+Datadog Synthetics
+By Datadog
+
+Datadog Synthetics logo
+Run Datadog Synthetic tests within your GitHub Actions workflow
+
+JavaScript
+Publish Node.js Package
+By GitHub Actions
+
+Publish Node.js Package logo
+Publishes a Node.js package to npm.
+
+JavaScript
+Laravel
+By GitHub Actions
+
+Laravel logo
+Test a Laravel project.
+
+PHP
+Automation
+View allautomation workflows
+AI issue summary
+By GitHub Actions
+
+Summarizes new issues
+
+Automation
+Manual workflow
+By GitHub Actions
+
+Simple workflow that is manually triggered.
+
+Automation
+Stale
+By GitHub Actions
+
+Checks for stale issues and pull requests
+
+Automation
+Greetings
+By GitHub Actions
+
+Greets users who are first time contributors to the repo
+
+Automation
+Pages
+View allPages workflows
+GitHub Pages Jekyll
+By GitHub Actions
+
+GitHub Pages Jekyll logo
+Package a Jekyll site with GitHub Pages dependencies preinstalled.
+
+NuxtJS
+By GitHub Actions
+
+NuxtJS logo
+Package a NuxtJS site.
+
+mdBook
+By GitHub Actions
+
+mdBook logo
+Package a site using mdBook.
+
+Static HTML
+By GitHub Actions
+
+Static HTML logo
+Deploy static files in a repository without a build.
+
+HTML
+Browse all categories
+Deployment
+Security
+Continuous integration
+Automation
+Pages
