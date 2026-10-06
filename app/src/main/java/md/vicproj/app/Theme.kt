@@ -17,12 +17,6 @@ object VicColors {
     val Hover = Color(0xFFE8E8E8)
     val HoverDark = Color(0xFF2E2E2E)
     val Press = Color(0xFFC8C8C8)
-
-    // Aurora ambientala: bule albastre, blurate, in miscare permanenta (singura exceptie de la alb-negru).
-    val AuroraBlue1 = Color(0x552563EB)
-    val AuroraBlue2 = Color(0x4D1D4ED8)
-    val AuroraBlue3 = Color(0x4D3B82F6)
-    val AuroraBlue4 = Color(0x401E40AF)
 }
 
 @Composable

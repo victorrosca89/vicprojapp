@@ -80,7 +80,8 @@ fun MonoButton(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (enabled && pressed) 0.97f else 1f, tween(120), label = "btnScale")
+    val tap = rememberTapHaptic()
+    val scale by animateFloatAsState(if (enabled && pressed) 0.96f else 1f, VicMotion.SoftSpring, label = "btnScale")
     val bg by animateColorAsState(if (enabled && pressed) VicColors.Foreground else VicColors.Background, tween(140), label = "btnBg")
     val fg by animateColorAsState(
         when {
@@ -103,7 +104,7 @@ fun MonoButton(
                 indication = null,
                 enabled = enabled,
                 role = Role.Button,
-                onClick = onClick,
+                onClick = { tap(); onClick() },
             )
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
@@ -132,7 +133,8 @@ fun MonoButtonPrimary(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (enabled && pressed) 0.97f else 1f, tween(120), label = "btnpScale")
+    val tap = rememberTapHaptic()
+    val scale by animateFloatAsState(if (enabled && pressed) 0.96f else 1f, VicMotion.SoftSpring, label = "btnpScale")
     val bg by animateColorAsState(
         when {
             !enabled -> VicColors.Border
@@ -153,7 +155,7 @@ fun MonoButtonPrimary(
                 indication = null,
                 enabled = enabled,
                 role = Role.Button,
-                onClick = onClick,
+                onClick = { tap(); onClick() },
             )
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
@@ -203,7 +205,11 @@ fun MonoInput(
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val borderColor = if (focused && enabled) VicColors.Foreground else VicColors.MutedDim
+    val borderColor by animateColorAsState(
+        if (focused && enabled) VicColors.Foreground else VicColors.MutedDim,
+        tween(220, easing = VicMotion.EaseInOut),
+        label = "inputBorder",
+    )
     val textColor = if (enabled) VicColors.Foreground else VicColors.MutedDim
     val fontSize = if (big) 24.sp else if (mono) 18.sp else 15.sp
 
@@ -346,22 +352,28 @@ fun CenteredScroll(
     }
 }
 
-/** Invelis subtil: continutul apare cu fade-in + o usoara ridicare (miscare „de lux”). */
+/** Invelis subtil: continutul apare cu fade-in, o usoara ridicare si o scalare fina („de lux”). */
 @Composable
 fun AppearFade(
     modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
     content: @Composable () -> Unit,
 ) {
     val alpha = remember { Animatable(0f) }
-    val offsetY = remember { Animatable(10f) }
+    val offsetY = remember { Animatable(14f) }
+    val scale = remember { Animatable(0.98f) }
     LaunchedEffect(Unit) {
-        launch { alpha.animateTo(1f, tween(350)) }
-        offsetY.animateTo(0f, tween(420, easing = FastOutSlowInEasing))
+        if (delayMillis > 0) kotlinx.coroutines.delay(delayMillis.toLong())
+        launch { alpha.animateTo(1f, tween(320, easing = VicMotion.EaseOut)) }
+        launch { scale.animateTo(1f, tween(480, easing = VicMotion.EaseOutLux)) }
+        offsetY.animateTo(0f, tween(480, easing = VicMotion.EaseOutLux))
     }
     Box(
         modifier = modifier.graphicsLayer {
             this.alpha = alpha.value
             translationY = offsetY.value.dp.toPx()
+            scaleX = scale.value
+            scaleY = scale.value
         },
     ) {
         content()

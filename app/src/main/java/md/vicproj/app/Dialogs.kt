@@ -5,8 +5,7 @@ import android.content.ContextWrapper
 import android.app.Activity
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 fun Context.findActivity(): Activity? {
     var c: Context? = this
@@ -58,6 +59,14 @@ fun Context.findActivity(): Activity? {
     return null
 }
 
+/**
+ * Inchiderea animata a ferestrei: butoanele din interior cer inchiderea prin aceasta functie,
+ * ca fereastra sa aibe timp sa dispara (fade + scalare) inainte sa se execute actiunea.
+ */
+val LocalDialogCloser = androidx.compose.runtime.staticCompositionLocalOf<(action: (() -> Unit)?) -> Unit> {
+    { action -> action?.invoke() }
+}
+
 /** Cadrul comun al ferestrelor: card negru-gri, bordura subtire, colturi rotunjite (ca AppErrorDialog din Windows). */
 @Composable
 fun VicDialog(
@@ -65,42 +74,58 @@ fun VicDialog(
     dismissable: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    var closing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val scale = remember { Animatable(0.9f) }
+    val alpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        launch { alpha.animateTo(1f, tween(200, easing = VicMotion.EaseOut)) }
+        scale.animateTo(1f, VicMotion.SoftSpring)
+    }
+
+    val closer: (action: (() -> Unit)?) -> Unit = { action ->
+        if (!closing) {
+            closing = true
+            scope.launch {
+                launch { scale.animateTo(0.94f, tween(180, easing = VicMotion.EaseIn)) }
+                alpha.animateTo(0f, tween(160, easing = VicMotion.EaseIn))
+                (action ?: onDismiss).invoke()
+            }
+        }
+    }
+
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (dismissable) closer(null) },
         properties = DialogProperties(
             dismissOnBackPress = dismissable,
             dismissOnClickOutside = dismissable,
             usePlatformDefaultWidth = false,
         ),
     ) {
-        var visible by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { visible = true }
-        val scale by animateFloatAsState(
-            if (visible) 1f else 0.92f,
-            tween(220, easing = FastOutSlowInEasing),
-            label = "dialogScale",
-        )
-        val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(200), label = "dialogAlpha")
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 420.dp)
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        this.alpha = alpha
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .background(VicColors.Surface, RoundedCornerShape(14.dp))
-                    .border(1.dp, VicColors.Border, RoundedCornerShape(14.dp))
-                    .padding(20.dp),
-            ) {
-                content()
+            androidx.compose.runtime.CompositionLocalProvider(LocalDialogCloser provides closer) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 420.dp)
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            this.alpha = alpha.value
+                            scaleX = scale.value
+                            scaleY = scale.value
+                        }
+                        .background(VicColors.Surface, RoundedCornerShape(14.dp))
+                        .border(1.dp, VicColors.Border, RoundedCornerShape(14.dp))
+                        .padding(20.dp),
+                ) {
+                    content()
+                }
             }
         }
     }
@@ -110,6 +135,7 @@ fun VicDialog(
 @Composable
 fun AppErrorDialog(info: ErrorInfo, onDismiss: () -> Unit) {
     VicDialog(onDismiss = onDismiss) {
+        val close = LocalDialogCloser.current
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -150,7 +176,7 @@ fun AppErrorDialog(info: ErrorInfo, onDismiss: () -> Unit) {
             }
         }
         Spacer(Modifier.height(18.dp))
-        MonoButtonPrimary("AM ÎNȚELES", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        MonoButtonPrimary("AM ÎNȚELES", onClick = { close(null) }, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -158,11 +184,12 @@ fun AppErrorDialog(info: ErrorInfo, onDismiss: () -> Unit) {
 @Composable
 fun MessageDialog(info: MessageInfo, onDismiss: () -> Unit) {
     VicDialog(onDismiss = onDismiss) {
+        val close = LocalDialogCloser.current
         Text(info.title, color = VicColors.Foreground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(Modifier.height(10.dp))
         Text(info.message, color = VicColors.Muted, fontSize = 14.sp, lineHeight = 20.sp)
         Spacer(Modifier.height(18.dp))
-        MonoButtonPrimary("OK", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        MonoButtonPrimary("OK", onClick = { close(null) }, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -174,13 +201,14 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
 ) {
     VicDialog(onDismiss = onDismiss) {
+        val close = LocalDialogCloser.current
         Text("VicProj", color = VicColors.Foreground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(Modifier.height(10.dp))
         Text(text, color = VicColors.Muted, fontSize = 14.sp, lineHeight = 20.sp)
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MonoButton("ANULEAZĂ", onClick = onDismiss, modifier = Modifier.weight(1f))
-            MonoButtonPrimary(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+            MonoButton("ANULEAZĂ", onClick = { close(null) }, modifier = Modifier.weight(1f))
+            MonoButtonPrimary(confirmLabel, onClick = { close(onConfirm) }, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -189,6 +217,7 @@ fun ConfirmDialog(
 @Composable
 fun CameraConsentDialog(onAllow: () -> Unit, onDeny: () -> Unit) {
     VicDialog(onDismiss = onDeny) {
+        val close = LocalDialogCloser.current
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -215,8 +244,8 @@ fun CameraConsentDialog(onAllow: () -> Unit, onDeny: () -> Unit) {
         )
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MonoButton("NU ACUM", onClick = onDeny, modifier = Modifier.weight(1f))
-            MonoButtonPrimary("PERMITE", onClick = onAllow, modifier = Modifier.weight(1f))
+            MonoButton("NU ACUM", onClick = { close(null) }, modifier = Modifier.weight(1f))
+            MonoButtonPrimary("PERMITE", onClick = { close(onAllow) }, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -225,6 +254,7 @@ fun CameraConsentDialog(onAllow: () -> Unit, onDeny: () -> Unit) {
 @Composable
 fun CameraBlockedDialog(onOpenSettings: () -> Unit, onClose: () -> Unit) {
     VicDialog(onDismiss = onClose) {
+        val close = LocalDialogCloser.current
         Text("Camera e blocată", color = VicColors.Foreground, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(Modifier.height(10.dp))
         Text(
@@ -235,8 +265,8 @@ fun CameraBlockedDialog(onOpenSettings: () -> Unit, onClose: () -> Unit) {
         )
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MonoButton("ÎNCHIDE", onClick = onClose, modifier = Modifier.weight(1f))
-            MonoButtonPrimary("SETĂRI", onClick = onOpenSettings, modifier = Modifier.weight(1f))
+            MonoButton("ÎNCHIDE", onClick = { close(null) }, modifier = Modifier.weight(1f))
+            MonoButtonPrimary("SETĂRI", onClick = { close(onOpenSettings) }, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -290,6 +320,7 @@ fun QrDialog(request: QrRequest, onClose: () -> Unit, onFailed: (String) -> Unit
     }
 
     VicDialog(onDismiss = onClose) {
+        val close = LocalDialogCloser.current
         Text(
             "Cod QR",
             color = VicColors.Foreground,
@@ -373,6 +404,6 @@ fun QrDialog(request: QrRequest, onClose: () -> Unit, onFailed: (String) -> Unit
             )
         }
         Spacer(Modifier.height(10.dp))
-        MonoButtonPrimary("ÎNCHIDE", onClick = onClose, modifier = Modifier.fillMaxWidth())
+        MonoButtonPrimary("ÎNCHIDE", onClick = { close(null) }, modifier = Modifier.fillMaxWidth())
     }
 }

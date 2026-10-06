@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pictograma „goala” a splash-ului de sistem: complet transparenta.
+  Asa, la pornire se vede doar fundalul negru, iar logoul apare o singura data,
+  in splash-ul animat al aplicatiei (SplashOverlay).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

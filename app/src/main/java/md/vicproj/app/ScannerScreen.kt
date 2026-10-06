@@ -8,6 +8,11 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
@@ -174,6 +180,14 @@ fun ScannerScreen(
         status = if (frames.get() > 0) STATUS_READY else STATUS_NO_FRAMES
     }
 
+    // Linia de scanare: urca si coboara lent in interiorul ramei de vizare.
+    val scanTransition = rememberInfiniteTransition(label = "scan")
+    val scanY by scanTransition.animateFloat(
+        0.06f, 0.94f,
+        infiniteRepeatable(tween(2400, easing = VicMotion.EaseInOut), RepeatMode.Reverse),
+        label = "scanY",
+    )
+
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
@@ -193,6 +207,26 @@ fun ScannerScreen(
             line(Offset(w, 0f), Offset(w - len, 0f)); line(Offset(w, 0f), Offset(w, len))
             line(Offset(0f, h), Offset(len, h)); line(Offset(0f, h), Offset(0f, h - len))
             line(Offset(w, h), Offset(w - len, h)); line(Offset(w, h), Offset(w, h - len))
+
+            // Linia de scanare + o aura difuza deasupra ei (doar alb, fara culoare)
+            val y = h * scanY
+            val glow = 26.dp.toPx()
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.16f)),
+                    startY = y - glow,
+                    endY = y,
+                ),
+                topLeft = Offset(0f, (y - glow).coerceAtLeast(0f)),
+                size = androidx.compose.ui.geometry.Size(w, glow.coerceAtMost(y)),
+            )
+            drawLine(
+                Color.White.copy(alpha = 0.9f),
+                Offset(0f, y),
+                Offset(w, y),
+                strokeWidth = 2.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
         }
 
         // Sus: inapoi + lanterna

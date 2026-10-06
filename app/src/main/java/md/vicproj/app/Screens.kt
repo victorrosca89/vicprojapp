@@ -2,11 +2,13 @@ package md.vicproj.app
 
 import androidx.compose.foundation.Image
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.Text
@@ -32,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -51,6 +54,7 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 private fun LogoHeader(onLogoTap: () -> Unit, logoSize: Int = 64, subtitle: String? = "Un cod. Un fișier. Atât.") {
+    val tap = rememberTapHaptic()
     Image(
         painter = painterResource(R.drawable.logo),
         contentDescription = "VicProj",
@@ -59,7 +63,7 @@ private fun LogoHeader(onLogoTap: () -> Unit, logoSize: Int = 64, subtitle: Stri
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onLogoTap,
+                onClick = { tap(); onLogoTap() },
             ),
     )
     Spacer(Modifier.height(10.dp))
@@ -80,6 +84,7 @@ fun PublicScreen(vm: MainViewModel, onScan: () -> Unit, onDownload: () -> Unit, 
         LogoHeader(onLogoTap = { vm.onLogoTap() })
         Spacer(Modifier.height(30.dp))
 
+        AppearFade(delayMillis = 110) {
         Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
             SectionLabel("COD (9 CIFRE)")
             Spacer(Modifier.height(6.dp))
@@ -135,6 +140,7 @@ fun PublicScreen(vm: MainViewModel, onScan: () -> Unit, onDownload: () -> Unit, 
                 Spacer(Modifier.height(14.dp))
                 MonoButton("DESCHIDE FIȘIERUL", onClick = onOpenFile, modifier = Modifier.fillMaxWidth())
             }
+        }
         }
     }
 }
@@ -223,6 +229,7 @@ fun LoginScreen(vm: MainViewModel, onBack: () -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         CenteredScroll {
+            AppearFade(delayMillis = 70) {
             Column(Modifier.widthIn(max = 360.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "Accesare Administrator",
@@ -291,6 +298,7 @@ fun LoginScreen(vm: MainViewModel, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
                 )
             }
+            }
         }
         Box(Modifier.padding(12.dp)) {
             MonoButton("←  ÎNAPOI", onClick = onBack, height = 40.dp)
@@ -322,6 +330,7 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
 
         // ---------- publica un fisier nou ----------
         item {
+            AppearFade(delayMillis = 70) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -380,6 +389,7 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     MonoProgress(vm.publishProgress)
                 }
+            }
             }
         }
 
@@ -475,14 +485,16 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
                 )
             }
         } else {
-            items(vm.files, key = { it.id }) { f ->
-                AppearFade {
+            itemsIndexed(vm.files, key = { _, f -> f.id }) { index, f ->
+                // Apariție în cascadă: fiecare rând intră cu o mică întârziere după cel de dinainte.
+                AppearFade(delayMillis = (index * 45).coerceAtMost(270)) {
                     FileRow(f) { vm.actionFile = f }
                 }
             }
         }
 
         item {
+            val logoutHaptic = rememberTapHaptic()
             Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                 Text(
                     "DECONECTARE",
@@ -494,7 +506,7 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                        ) { vm.logout() }
+                        ) { logoutHaptic(); vm.logout() }
                         .padding(12.dp),
                 )
             }
@@ -507,14 +519,19 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val bg by animateColorAsState(if (selected) VicColors.Foreground else VicColors.Background, tween(220), label = "chipBg")
     val border by animateColorAsState(if (selected) VicColors.Foreground else VicColors.MutedDim, tween(220), label = "chipBorder")
     val fg by animateColorAsState(if (selected) VicColors.Background else VicColors.Foreground, tween(220), label = "chipFg")
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.95f else 1f, VicMotion.SoftSpring, label = "chipScale")
+    val tap = rememberTapHaptic()
     Box(
         modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .background(bg)
             .border(1.dp, border)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = source,
                 indication = null,
-                onClick = onClick,
+                onClick = { tap(); onClick() },
             )
             .padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
@@ -531,15 +548,20 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun FileRow(f: FileOut, onClick: () -> Unit) {
     val active = f.status == "active"
     val blocked = f.status == "blocked"
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.985f else 1f, VicMotion.SoftSpring, label = "rowScale")
+    val tap = rememberTapHaptic()
     Column(
         Modifier
             .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .background(VicColors.Surface)
             .border(1.dp, VicColors.Border)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = source,
                 indication = null,
-                onClick = onClick,
+                onClick = { tap(); onClick() },
             )
             .padding(14.dp),
     ) {
@@ -591,27 +613,28 @@ fun FileActionsDialog(
     onClose: () -> Unit,
 ) {
     VicDialog(onDismiss = onClose) {
+        val close = LocalDialogCloser.current
         Text(f.filename, color = VicColors.Foreground, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(4.dp))
         Text("${f.statusRomana}  ·  ${f.sharedCode}", color = VicColors.Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         Spacer(Modifier.height(16.dp))
-        MonoButton("COPIAZĂ LINKUL", onClick = onCopyLink, modifier = Modifier.fillMaxWidth())
+        MonoButton("COPIAZĂ LINKUL", onClick = { close(onCopyLink) }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        MonoButton("COD QR", onClick = onQr, modifier = Modifier.fillMaxWidth())
+        MonoButton("COD QR", onClick = { close(onQr) }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        MonoButton("GENEREAZĂ PIN NOU", onClick = onRegenerate, modifier = Modifier.fillMaxWidth())
+        MonoButton("GENEREAZĂ PIN NOU", onClick = { close(onRegenerate) }, modifier = Modifier.fillMaxWidth())
         if (f.status == "active") {
             Spacer(Modifier.height(8.dp))
-            MonoButton("PUNE PE PAUZĂ", onClick = onPause, modifier = Modifier.fillMaxWidth())
+            MonoButton("PUNE PE PAUZĂ", onClick = { close(onPause) }, modifier = Modifier.fillMaxWidth())
         }
         if (f.status == "paused") {
             Spacer(Modifier.height(8.dp))
-            MonoButton("REACTIVEAZĂ", onClick = onResume, modifier = Modifier.fillMaxWidth())
+            MonoButton("REACTIVEAZĂ", onClick = { close(onResume) }, modifier = Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(8.dp))
-        MonoButton("BLOCHEAZĂ DEFINITIV", onClick = onBlock, enabled = f.status != "blocked", modifier = Modifier.fillMaxWidth())
+        MonoButton("BLOCHEAZĂ DEFINITIV", onClick = { close(onBlock) }, enabled = f.status != "blocked", modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(14.dp))
-        MonoButtonPrimary("ÎNCHIDE", onClick = onClose, modifier = Modifier.fillMaxWidth())
+        MonoButtonPrimary("ÎNCHIDE", onClick = { close(null) }, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -645,6 +668,7 @@ private fun shareText(context: android.content.Context, text: String) {
 @Composable
 fun UpdateDialog(manifest: UpdateManifest, onDownload: () -> Unit, onLater: () -> Unit) {
     VicDialog(onDismiss = onLater) {
+        val close = LocalDialogCloser.current
         Text("ACTUALIZARE DISPONIBILĂ", color = VicColors.Foreground, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = 1.sp)
         Spacer(Modifier.height(10.dp))
         val text = if (manifest.message.isNotBlank()) {
@@ -655,8 +679,8 @@ fun UpdateDialog(manifest: UpdateManifest, onDownload: () -> Unit, onLater: () -
         Text(text, color = VicColors.Muted, fontSize = 14.sp, lineHeight = 20.sp)
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MonoButton("MAI TÂRZIU", onClick = onLater, modifier = Modifier.weight(1f))
-            MonoButtonPrimary("DESCARCĂ", onClick = onDownload, modifier = Modifier.weight(1f))
+            MonoButton("MAI TÂRZIU", onClick = { close(null) }, modifier = Modifier.weight(1f))
+            MonoButtonPrimary("DESCARCĂ", onClick = { close(onDownload) }, modifier = Modifier.weight(1f))
         }
     }
 }

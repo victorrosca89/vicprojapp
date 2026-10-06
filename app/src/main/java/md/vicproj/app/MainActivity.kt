@@ -15,11 +15,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +33,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,13 +41,22 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
+/** Splash-ul animat apare o singura data pe durata procesului (nu la fiecare recreare a ecranului). */
+object SplashShown {
+    var done: Boolean = false
+}
+
 class MainActivity : ComponentActivity() {
 
     private val vm: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Splash-ul de sistem ramane doar un fundal negru (fara logo), ca sa nu se vada
+        // logoul de doua ori: se trece direct in splash-ul animat al aplicatiei.
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        // Aplicatia ramane mereu pe portret, chiar daca rotirea automata e activa.
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
@@ -168,16 +181,14 @@ fun AppRoot(vm: MainViewModel) {
     BackHandler(enabled = !forced && vm.screen != Screen.Public && !vm.showScanner) { vm.backToPublic() }
 
     // ---------- continut ----------
-    var showSplash by remember { mutableStateOf(true) }
+    // Splash-ul se arata o singura data pe sesiune: nu reapare la rotire sau la recrearea ecranului.
+    var showSplash by rememberSaveable { mutableStateOf(!SplashShown.done) }
 
     Box(
         Modifier
             .fillMaxSize()
             .background(VicColors.Background),
     ) {
-        // Fundal: aurora ambientala (bule albastre, blurate, in miscare permanenta)
-        AuroraBackground(Modifier.matchParentSize())
-
         Box(
             Modifier
                 .fillMaxSize()
@@ -188,18 +199,22 @@ fun AppRoot(vm: MainViewModel) {
             } else {
                 Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
-                        Crossfade(
+                        AnimatedContent(
                             targetState = vm.screen,
-                            animationSpec = tween(420),
+                            transitionSpec = {
+                                vicScreenEnter() togetherWith vicScreenExit() using SizeTransform(clip = false)
+                            },
                             label = "screen",
                         ) { screen ->
                             when (screen) {
                                 Screen.Public -> {
                                     val blocked = vm.connState == ConnectivityState.Offline ||
                                         vm.connState == ConnectivityState.ServerUnreachable
-                                    Crossfade(
+                                    AnimatedContent(
                                         targetState = blocked && !vm.showScanner,
-                                        animationSpec = tween(420),
+                                        transitionSpec = {
+                                            vicScreenEnter() togetherWith vicScreenExit() using SizeTransform(clip = false)
+                                        },
                                         label = "conn",
                                     ) { isBlocked ->
                                         if (isBlocked) {
@@ -220,16 +235,32 @@ fun AppRoot(vm: MainViewModel) {
                             }
                         }
 
-                        ScannerOverlay(vm)
+                        AnimatedVisibility(
+                            visible = vm.showScanner,
+                            enter = fadeIn(tween(280, easing = VicMotion.EaseOut)) +
+                                scaleIn(initialScale = 1.04f, animationSpec = tween(360, easing = VicMotion.EaseOutLux)),
+                            exit = fadeOut(tween(200, easing = VicMotion.EaseIn)) +
+                                scaleOut(targetScale = 1.04f, animationSpec = tween(220, easing = VicMotion.EaseIn)),
+                            modifier = Modifier.matchParentSize(),
+                        ) {
+                            ScannerScreen(
+                                onResult = { vm.onScanned(it) },
+                                onClose = { vm.closeScanner() },
+                                onFatal = { vm.scannerFailed(it) },
+                            )
+                        }
                     }
                     StatusBar(vm.connState, vm.flash)
                 }
             }
         }
 
-        // Splash animat (~4s): logo fade-in + zoom, cerc care se invarte, apoi totul se stinge.
+        // Splash animat (~2,5 s): logo fade-in + zoom, cerc lent de încărcare, apoi totul se stinge.
         if (showSplash) {
-            SplashOverlay(onFinished = { showSplash = false })
+            SplashOverlay(onFinished = {
+                SplashShown.done = true
+                showSplash = false
+            })
         }
     }
 
@@ -326,23 +357,6 @@ fun AppRoot(vm: MainViewModel) {
                 openUrl(optionalManifest.downloadUrl)
             },
             onLater = { vm.dismissUpdate() },
-        )
-    }
-}
-
-
-@Composable
-private fun ScannerOverlay(vm: MainViewModel) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = vm.showScanner,
-        enter = fadeIn(tween(250)),
-        exit = fadeOut(tween(250)),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        ScannerScreen(
-            onResult = { vm.onScanned(it) },
-            onClose = { vm.closeScanner() },
-            onFatal = { vm.scannerFailed(it) },
         )
     }
 }
