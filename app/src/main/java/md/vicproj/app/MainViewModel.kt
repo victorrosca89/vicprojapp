@@ -421,7 +421,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun loginWithMagic(text: String) = doLogin(text) { api.magicVerify(it) }
 
-    private fun setLoginStatus(text: String) {
+    private fun showLoginStatus(text: String) {
         if (text.isEmpty()) {
             loginStatus = ""
             return
@@ -433,12 +433,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun doLogin(text: String, action: suspend (String) -> TokenResponse) {
         if (loginBusy) return
         if (text.isBlank()) {
-            setLoginStatus("Completează câmpul de mai sus.")
+            showLoginStatus("Completează câmpul de mai sus.")
             return
         }
         viewModelScope.launch {
             loginBusy = true
-            setLoginStatus("")
+            showLoginStatus("")
             try {
                 val tok = action(text.trim())
                 api.token = tok.accessToken
@@ -446,13 +446,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 screen = Screen.Admin
                 refreshFiles()
             } catch (e: ApiException) {
-                setLoginStatus(
+                showLoginStatus(
                     if (e.statusCode == 0) "Nu ne putem conecta la server. Verifică internetul."
                     else (e.message ?: "Eroare."),
                 )
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                setLoginStatus("Eroare neașteptată: ${e.message}")
+                showLoginStatus("Eroare neașteptată: ${e.message}")
             } finally {
                 loginBusy = false
             }
@@ -504,7 +504,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun linkOf(f: FileOut): String = SHARE_URL_PREFIX + f.sharedCode
 
-    fun setStatusFilter(value: String?) {
+    fun onStatusFilterChange(value: String?) {
         statusFilter = value
         loadFiles()
     }
