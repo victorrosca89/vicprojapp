@@ -443,10 +443,10 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip("Toate", vm.statusFilter == null) { vm.setStatusFilter(null) }
-                    FilterChip("Active", vm.statusFilter == "active") { vm.setStatusFilter("active") }
-                    FilterChip("Pauzate", vm.statusFilter == "paused") { vm.setStatusFilter("paused") }
-                    FilterChip("Blocate", vm.statusFilter == "blocked") { vm.setStatusFilter("blocked") }
+                    FilterChip("Toate", vm.statusFilter == null) { vm.onStatusFilterChange(null) }
+                    FilterChip("Active", vm.statusFilter == "active") { vm.onStatusFilterChange("active") }
+                    FilterChip("Pauzate", vm.statusFilter == "paused") { vm.onStatusFilterChange("paused") }
+                    FilterChip("Blocate", vm.statusFilter == "blocked") { vm.onStatusFilterChange("blocked") }
                 }
                 Spacer(Modifier.height(10.dp))
                 MonoButton(
