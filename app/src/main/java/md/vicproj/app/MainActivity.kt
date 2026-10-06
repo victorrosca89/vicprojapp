@@ -1,4 +1,3 @@
-```kotlin
 package md.vicproj.app
 
 import android.Manifest
@@ -599,4 +598,3 @@ fun AppRoot(vm: MainViewModel) {
         )
     }
 }
-```
