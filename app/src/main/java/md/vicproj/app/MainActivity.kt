@@ -220,18 +220,7 @@ fun AppRoot(vm: MainViewModel) {
                             }
                         }
 
-                        AnimatedVisibility(
-                            visible = vm.showScanner,
-                            enter = fadeIn(tween(250)),
-                            exit = fadeOut(tween(250)),
-                            modifier = Modifier.matchParentSize(),
-                        ) {
-                            ScannerScreen(
-                                onResult = { vm.onScanned(it) },
-                                onClose = { vm.closeScanner() },
-                                onFatal = { vm.scannerFailed(it) },
-                            )
-                        }
+                        ScannerOverlay(vm)
                     }
                     StatusBar(vm.connState, vm.flash)
                 }
@@ -337,6 +326,22 @@ fun AppRoot(vm: MainViewModel) {
                 openUrl(optionalManifest.downloadUrl)
             },
             onLater = { vm.dismissUpdate() },
+        )
+    }
+}
+
+@Composable
+private fun ScannerOverlay(vm: MainViewModel) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = vm.showScanner,
+        enter = fadeIn(tween(250)),
+        exit = fadeOut(tween(250)),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        ScannerScreen(
+            onResult = { vm.onScanned(it) },
+            onClose = { vm.closeScanner() },
+            onFatal = { vm.scannerFailed(it) },
         )
     }
 }
