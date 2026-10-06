@@ -28,6 +28,10 @@ jobs:
 
       - name: Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Implicit actiunea cere pachetul "tools", care nu mai exista in sdkmanager nou
+          # ("Failed to find package 'tools'"). Gradle isi descarca singur ce are nevoie.
+          packages: ''
 
       - name: Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
