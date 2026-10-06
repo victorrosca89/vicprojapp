@@ -330,6 +330,7 @@ fun AppRoot(vm: MainViewModel) {
     }
 }
 
+
 @Composable
 private fun ScannerOverlay(vm: MainViewModel) {
     androidx.compose.animation.AnimatedVisibility(
