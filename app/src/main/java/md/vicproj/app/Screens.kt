@@ -1,6 +1,8 @@
 package md.vicproj.app
 
 import androidx.compose.foundation.Image
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -385,6 +387,7 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
         val res = vm.result
         if (res != null) {
             item {
+                AppearFade {
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -424,6 +427,7 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
                             height = 44.dp,
                         )
                     }
+                }
                 }
             }
         }
@@ -472,7 +476,9 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
             }
         } else {
             items(vm.files, key = { it.id }) { f ->
-                FileRow(f) { vm.actionFile = f }
+                AppearFade {
+                    FileRow(f) { vm.actionFile = f }
+                }
             }
         }
 
@@ -498,10 +504,13 @@ fun AdminScreen(vm: MainViewModel, onPickFile: () -> Unit) {
 
 @Composable
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (selected) VicColors.Foreground else VicColors.Background, tween(220), label = "chipBg")
+    val border by animateColorAsState(if (selected) VicColors.Foreground else VicColors.MutedDim, tween(220), label = "chipBorder")
+    val fg by animateColorAsState(if (selected) VicColors.Background else VicColors.Foreground, tween(220), label = "chipFg")
     Box(
         modifier = Modifier
-            .background(if (selected) VicColors.Foreground else VicColors.Background)
-            .border(1.dp, if (selected) VicColors.Foreground else VicColors.MutedDim)
+            .background(bg)
+            .border(1.dp, border)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -511,7 +520,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = if (selected) VicColors.Background else VicColors.Foreground,
+            color = fg,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
         )

@@ -3,6 +3,15 @@ package md.vicproj.app
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +42,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -54,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 private val Corner = RoundedCornerShape(4.dp)
 
@@ -68,15 +80,20 @@ fun MonoButton(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val bg = if (enabled && pressed) VicColors.Foreground else VicColors.Background
-    val fg = when {
-        !enabled -> VicColors.MutedDim
-        pressed -> VicColors.Background
-        else -> VicColors.Foreground
-    }
+    val scale by animateFloatAsState(if (enabled && pressed) 0.97f else 1f, tween(120), label = "btnScale")
+    val bg by animateColorAsState(if (enabled && pressed) VicColors.Foreground else VicColors.Background, tween(140), label = "btnBg")
+    val fg by animateColorAsState(
+        when {
+            !enabled -> VicColors.MutedDim
+            pressed -> VicColors.Background
+            else -> VicColors.Foreground
+        },
+        tween(140), label = "btnFg",
+    )
     val borderColor = if (enabled) VicColors.Foreground else VicColors.Border
     Box(
         modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .height(height)
             .clip(Corner)
             .background(bg)
@@ -115,14 +132,19 @@ fun MonoButtonPrimary(
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val bg = when {
-        !enabled -> VicColors.Border
-        pressed -> VicColors.Press
-        else -> VicColors.Foreground
-    }
+    val scale by animateFloatAsState(if (enabled && pressed) 0.97f else 1f, tween(120), label = "btnpScale")
+    val bg by animateColorAsState(
+        when {
+            !enabled -> VicColors.Border
+            pressed -> VicColors.Press
+            else -> VicColors.Foreground
+        },
+        tween(140), label = "btnpBg",
+    )
     val fg = if (enabled) VicColors.Background else VicColors.MutedDim
     Box(
         modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .height(height)
             .clip(Corner)
             .background(bg)
@@ -232,7 +254,8 @@ fun MonoInput(
 /** Bara de progres subtire (6 dp), alb pe fundal SurfaceAlt, ca MonoProgressBar. */
 @Composable
 fun MonoProgress(progress: Int?, modifier: Modifier = Modifier) {
-    val fraction = ((progress ?: 0).coerceIn(0, 100) / 100f).coerceAtLeast(0.02f)
+    val target = ((progress ?: 0).coerceIn(0, 100) / 100f).coerceAtLeast(0.02f)
+    val fraction by animateFloatAsState(target, tween(300, easing = FastOutSlowInEasing), label = "progress")
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -282,15 +305,22 @@ fun StatusBar(state: ConnectivityState, flash: String) {
             Spacer(Modifier.width(8.dp))
             Text(label, color = VicColors.Muted, fontSize = 11.sp, maxLines = 1)
             Spacer(Modifier.width(12.dp))
-            Text(
-                text = flash,
-                color = VicColors.Foreground,
-                fontSize = 11.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.End,
+            AnimatedContent(
+                targetState = flash,
+                transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
                 modifier = Modifier.weight(1f),
-            )
+                label = "flash",
+            ) { msg ->
+                Text(
+                    text = msg,
+                    color = VicColors.Foreground,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -313,6 +343,28 @@ fun CenteredScroll(
             verticalArrangement = Arrangement.Center,
             content = content,
         )
+    }
+}
+
+/** Invelis subtil: continutul apare cu fade-in + o usoara ridicare (miscare „de lux”). */
+@Composable
+fun AppearFade(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val alpha = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(10f) }
+    LaunchedEffect(Unit) {
+        launch { alpha.animateTo(1f, tween(350)) }
+        offsetY.animateTo(0f, tween(420, easing = FastOutSlowInEasing))
+    }
+    Box(
+        modifier = modifier.graphicsLayer {
+            this.alpha = alpha.value
+            translationY = offsetY.value.dp.toPx()
+        },
+    ) {
+        content()
     }
 }
 

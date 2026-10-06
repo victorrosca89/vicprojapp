@@ -15,6 +15,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +27,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
@@ -159,47 +168,79 @@ fun AppRoot(vm: MainViewModel) {
     BackHandler(enabled = !forced && vm.screen != Screen.Public && !vm.showScanner) { vm.backToPublic() }
 
     // ---------- continut ----------
+    var showSplash by remember { mutableStateOf(true) }
+
     Box(
         Modifier
             .fillMaxSize()
-            .background(VicColors.Background)
-            .systemBarsPadding(),
+            .background(VicColors.Background),
     ) {
-        if (forcedManifest != null) {
-            ForcedUpdateScreen(forcedManifest) { openUrl(forcedManifest.downloadUrl) }
-        } else {
-            Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth()) {
-                    when (vm.screen) {
-                        Screen.Public -> {
-                            val blocked = vm.connState == ConnectivityState.Offline ||
-                                vm.connState == ConnectivityState.ServerUnreachable
-                            if (blocked && !vm.showScanner) {
-                                ConnectivityScreen(
-                                    state = vm.connState,
-                                    checking = vm.checkingConnection,
-                                    statusText = vm.connStatusText,
-                                    onRetry = { vm.retryConnection() },
-                                    onLogoTap = { vm.onLogoTap() },
-                                )
-                            } else {
-                                PublicScreen(vm, onScan = onScan, onDownload = onDownload, onOpenFile = onOpenFile)
+        // Fundal: aurora ambientala (bule albastre, blurate, in miscare permanenta)
+        AuroraBackground(Modifier.matchParentSize())
+
+        Box(
+            Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
+        ) {
+            if (forcedManifest != null) {
+                ForcedUpdateScreen(forcedManifest) { openUrl(forcedManifest.downloadUrl) }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        Crossfade(
+                            targetState = vm.screen,
+                            animationSpec = tween(420),
+                            label = "screen",
+                        ) { screen ->
+                            when (screen) {
+                                Screen.Public -> {
+                                    val blocked = vm.connState == ConnectivityState.Offline ||
+                                        vm.connState == ConnectivityState.ServerUnreachable
+                                    Crossfade(
+                                        targetState = blocked && !vm.showScanner,
+                                        animationSpec = tween(420),
+                                        label = "conn",
+                                    ) { isBlocked ->
+                                        if (isBlocked) {
+                                            ConnectivityScreen(
+                                                state = vm.connState,
+                                                checking = vm.checkingConnection,
+                                                statusText = vm.connStatusText,
+                                                onRetry = { vm.retryConnection() },
+                                                onLogoTap = { vm.onLogoTap() },
+                                            )
+                                        } else {
+                                            PublicScreen(vm, onScan = onScan, onDownload = onDownload, onOpenFile = onOpenFile)
+                                        }
+                                    }
+                                }
+                                Screen.Login -> LoginScreen(vm, onBack = { vm.backToPublic() })
+                                Screen.Admin -> AdminScreen(vm, onPickFile = { pickFile.launch(arrayOf("*/*")) })
                             }
                         }
-                        Screen.Login -> LoginScreen(vm, onBack = { vm.backToPublic() })
-                        Screen.Admin -> AdminScreen(vm, onPickFile = { pickFile.launch(arrayOf("*/*")) })
-                    }
 
-                    if (vm.showScanner) {
-                        ScannerScreen(
-                            onResult = { vm.onScanned(it) },
-                            onClose = { vm.closeScanner() },
-                            onFatal = { vm.scannerFailed(it) },
-                        )
+                        AnimatedVisibility(
+                            visible = vm.showScanner,
+                            enter = fadeIn(tween(250)),
+                            exit = fadeOut(tween(250)),
+                            modifier = Modifier.matchParentSize(),
+                        ) {
+                            ScannerScreen(
+                                onResult = { vm.onScanned(it) },
+                                onClose = { vm.closeScanner() },
+                                onFatal = { vm.scannerFailed(it) },
+                            )
+                        }
                     }
+                    StatusBar(vm.connState, vm.flash)
                 }
-                StatusBar(vm.connState, vm.flash)
             }
+        }
+
+        // Splash animat (~4s): logo fade-in + zoom, cerc care se invarte, apoi totul se stinge.
+        if (showSplash) {
+            SplashOverlay(onFinished = { showSplash = false })
         }
     }
 

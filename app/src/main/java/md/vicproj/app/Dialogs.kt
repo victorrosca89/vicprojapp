@@ -5,6 +5,9 @@ import android.content.ContextWrapper
 import android.app.Activity
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +73,14 @@ fun VicDialog(
             usePlatformDefaultWidth = false,
         ),
     ) {
+        var visible by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { visible = true }
+        val scale by animateFloatAsState(
+            if (visible) 1f else 0.92f,
+            tween(220, easing = FastOutSlowInEasing),
+            label = "dialogScale",
+        )
+        val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(200), label = "dialogAlpha")
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -79,6 +91,11 @@ fun VicDialog(
                 modifier = Modifier
                     .widthIn(max = 420.dp)
                     .fillMaxWidth()
+                    .graphicsLayer {
+                        this.alpha = alpha
+                        scaleX = scale
+                        scaleY = scale
+                    }
                     .background(VicColors.Surface, RoundedCornerShape(14.dp))
                     .border(1.dp, VicColors.Border, RoundedCornerShape(14.dp))
                     .padding(20.dp),
